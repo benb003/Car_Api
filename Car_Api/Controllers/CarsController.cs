@@ -60,7 +60,7 @@ namespace Car_Api.Controllers
             await _carRepository.AddCar(brandId, carToAddToDb);
             await _carRepository.SaveChangesAsync();
 
-            return NoContent();
+            return CreatedAtRoute("GetCar",new{brandId = carToAddToDb.BrandId, carId=carToAddToDb.Id},carToAddToDb);
         }
 
         [HttpPut("{carId}")]
