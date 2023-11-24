@@ -1,9 +1,11 @@
-﻿using AutoMapper;
+﻿using System.Net;
+using AutoMapper;
 using Car_Api.Models;
 using Car_Api.Models.Dtos;
 using Car_Api.Services;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace Car_Api.Controllers
 {
@@ -13,42 +15,49 @@ namespace Car_Api.Controllers
     {
         private readonly ICarRepository _carRepository;
         private readonly IMapper _mapper;
+        private readonly ApiResponse _response;
 
         public CarsController(ICarRepository carRepository, IMapper mapper)
         {
             _carRepository = carRepository;
             _mapper = mapper;
+            this._response = new ApiResponse();
         }
 
         [HttpGet]
-        public async Task<ActionResult<CarDto>> GetCars(int brandId)
+        public async Task<ActionResult<ApiResponse>> GetCars(int brandId)
         {
             if (!await _carRepository.BrandExistAsync(brandId))
             {
                 return NotFound();
             }
-            var carsFromDb = await _carRepository.GetAllCarsForBrandAsync(brandId);
 
-            return Ok(_mapper.Map<IEnumerable<CarDto>>(carsFromDb));
+            var carsFromDb = await _carRepository.GetAllCarsForBrandAsync(brandId);
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = _mapper.Map<IEnumerable<CarDto>>(carsFromDb); 
+            return Ok(_response);
         }
 
-        [HttpGet("{carId}", Name = "GetCar")]
-        public async Task<ActionResult<Car>> GetCar(int brandId, int carId)
+        [HttpGet("{carId:int}", Name = "GetCar")]
+        public async Task<ActionResult<ApiResponse>> GetCar(int brandId, int carId)
         {
             if (!await _carRepository.BrandExistAsync(brandId))
             {
                 return NotFound();
             }
+
             var carFromDb = await _carRepository.GetCarForBrandAsync(brandId, carId);
             if (carFromDb == null)
             {
                 return NotFound();
             }
-            return Ok(_mapper.Map<CarDto>(carFromDb));
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = _mapper.Map<CarDto>(carFromDb); 
+            return Ok(_response);
         }
 
         [HttpPost]
-        public async Task<ActionResult<CarDto>> CreateCar(int brandId, CarForCreationDto carForCreationDto)
+        public async Task<ActionResult<ApiResponse>> CreateCar(int brandId, CarForCreationDto carForCreationDto)
         {
             if (!await _carRepository.BrandExistAsync(brandId))
             {
@@ -59,8 +68,11 @@ namespace Car_Api.Controllers
 
             await _carRepository.AddCar(brandId, carToAddToDb);
             await _carRepository.SaveChangesAsync();
-
-            return CreatedAtRoute("GetCar",new{brandId = carToAddToDb.BrandId, carId=carToAddToDb.Id},carToAddToDb);
+            
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = _mapper.Map<CarDto>(carToAddToDb);
+            return CreatedAtRoute("GetCar", new { brandId = carToAddToDb.BrandId, carId = carToAddToDb.Id },
+                _response);
         }
 
         [HttpPut("{carId}")]
@@ -70,11 +82,13 @@ namespace Car_Api.Controllers
             {
                 return NotFound();
             }
+
             var carFromDb = await _carRepository.GetCarForBrandAsync(brandId, carId);
             if (carFromDb == null)
             {
                 return NotFound();
             }
+
             _mapper.Map(carForUpdateDto, carFromDb);
             await _carRepository.SaveChangesAsync();
             return NoContent();
@@ -87,11 +101,13 @@ namespace Car_Api.Controllers
             {
                 return NotFound();
             }
+
             var carFromDb = await _carRepository.GetCarForBrandAsync(brandId, carId);
             if (carFromDb == null)
             {
                 return NotFound();
             }
+
             _carRepository.DeleteCar(carFromDb);
 
             await _carRepository.SaveChangesAsync();
@@ -100,13 +116,14 @@ namespace Car_Api.Controllers
         }
 
         [HttpPatch("{carId}")]
-        public async Task<ActionResult> PartiallyUpdateCar(int brandId, int carId, 
+        public async Task<ActionResult> PartiallyUpdateCar(int brandId, int carId,
             JsonPatchDocument<CarForUpdateDto> patchDocument)
         {
             if (!await _carRepository.BrandExistAsync(brandId))
             {
                 return NotFound();
             }
+
             var carFromDb = await _carRepository.GetCarForBrandAsync(brandId, carId);
             if (carFromDb == null)
             {
@@ -117,11 +134,12 @@ namespace Car_Api.Controllers
 
             patchDocument.ApplyTo(carToPatch, ModelState);
 
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
-            if(!TryValidateModel(carToPatch))
+
+            if (!TryValidateModel(carToPatch))
             {
                 return BadRequest(ModelState);
             }
