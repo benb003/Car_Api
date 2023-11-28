@@ -37,6 +37,38 @@ namespace Car_Api.Services
         {
             return await _context.Brands.OrderBy(b => b.Name).ToListAsync();
         }
+        public async Task<(IEnumerable<Brand>, PaginationMetadata)> GetAllBrandsAsync(string? name
+            , string? searchQuery, int pageNumber, int pageSize)
+        {
+            var collection = _context.Brands as IQueryable<Brand>;
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                name = name.Trim();
+                collection = collection.Where(b => b.Name == name);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                searchQuery = searchQuery.Trim();
+                collection = collection
+                    .Where(b => b.Name.Contains(searchQuery)
+                                ||(b.Description!=null
+                                   &&b.Description.Contains(searchQuery)));
+            }
+
+            var totalItemCount = await collection.CountAsync();
+
+            var paginationMetaData = 
+                new PaginationMetadata(totalItemCount, pageSize, pageNumber);
+
+            var collectionToReturn =  await collection
+                .OrderBy(b => b.Name)
+                .Skip(pageSize*(pageNumber-1))
+                .Take(pageSize)
+                .ToListAsync();
+            return (collectionToReturn, paginationMetaData);
+        }
 
         public async Task<IEnumerable<Car>> GetAllCarsForBrandAsync(int brandId)
         {

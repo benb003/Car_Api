@@ -5,6 +5,8 @@ namespace Car_Api.Services
     public interface ICarRepository
     {
         Task<IEnumerable<Brand>> GetAllBrandsAsync();
+        Task<(IEnumerable<Brand>, PaginationMetadata)> GetAllBrandsAsync(string? name, string? searchQuery,
+            int pageNumber, int pageSize);
         Task<Brand?> GetBrandAsync(int brandId, bool includeCars);
         Task<bool> BrandExistAsync(int brandId);
         Task<IEnumerable<Car>> GetAllCarsForBrandAsync(int brandId);

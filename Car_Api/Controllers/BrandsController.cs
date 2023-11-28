@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text.Json;
 using AutoMapper;
 using Car_Api.Models;
 using Car_Api.Models.Dtos;
@@ -14,6 +15,7 @@ namespace Car_Api.Controllers
         private readonly ICarRepository _carRepository;
         private readonly IMapper _mapper;
         private readonly ApiResponse _response;
+        private const int MaxBrandPageSize = 20;
 
         public BrandsController(ICarRepository carRepository, IMapper mapper)
         {
@@ -23,12 +25,19 @@ namespace Car_Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse>> GetBrandsAsync()
+        public async Task<ActionResult<IEnumerable<BrandWithoutCarsDto>>> GetBrandsAsync
+            (string? name, string? searchQuery, int pageNumber=1, int pageSize=10 )
         {
-            var brandsFromBd = await _carRepository.GetAllBrandsAsync();
-            _response.Result = _mapper.Map<IEnumerable<BrandWithoutCarsDto>>(brandsFromBd);
-            _response.StatusCode = HttpStatusCode.OK;
-            return Ok(_response);
+            if (pageSize > MaxBrandPageSize)
+            {
+                pageSize = MaxBrandPageSize;
+            }
+            var (brandsFromBd,paginationMetadata) = await _carRepository.GetAllBrandsAsync
+                (name, searchQuery,pageNumber,pageSize);
+            
+            Response.Headers.Add("X-Pagination",JsonSerializer.Serialize(paginationMetadata));
+            
+            return Ok(_mapper.Map<IEnumerable<BrandWithoutCarsDto>>(brandsFromBd));
 
         }
 
