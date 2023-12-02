@@ -3,6 +3,7 @@ using AutoMapper;
 using Car_Api.Models;
 using Car_Api.Models.Dtos;
 using Car_Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Car_Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("/api/brands/{brandId}/cars")]
     public class CarsController : Controller
     {
